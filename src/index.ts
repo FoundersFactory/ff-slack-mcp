@@ -37,7 +37,7 @@ app.event('app_mention', async ({ event, say }) => {
   console.log('Received app_mention event:', event);
   try {
     if (event.text && event.user && event.channel) {
-      await conversationManager.startConversation(
+      await conversationManager.handleMessage(
         event.user,
         event.channel,
         event.text.replace(/<@[^>]+>/, '').trim(),
@@ -61,7 +61,7 @@ app.event('message', async ({ event, say }) => {
   if (event.channel.startsWith('D') && 'user' in event && 'text' in event) {
     const messageEvent = event as { user: string; text: string; channel: string };
     try {
-      await conversationManager.startConversation(
+      await conversationManager.handleMessage(
         messageEvent.user,
         messageEvent.channel,
         messageEvent.text
@@ -77,10 +77,11 @@ app.event('message', async ({ event, say }) => {
   else if ('thread_ts' in event && event.thread_ts && 'user' in event && 'text' in event) {
     const messageEvent = event as { user: string; text: string; channel: string; thread_ts: string };
     try {
-      await conversationManager.continueConversation(
+      await conversationManager.handleMessage(
         messageEvent.user,
         messageEvent.channel,
-        messageEvent.text
+        messageEvent.text,
+        messageEvent.thread_ts
       );
     } catch (error) {
       console.error('Error handling thread message:', error);

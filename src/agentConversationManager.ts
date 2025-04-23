@@ -51,58 +51,15 @@ export class ConversationManager {
   }
 
   /**
-   * Start a new conversation with a user
+   * Handle a message from a user, whether it's a new conversation or continuing one
    */
-  public async startConversation(userId: string, channelId: string, initialMessage: string, threadTs?: string) {
+  public async handleMessage(userId: string, channelId: string, message: string, threadTs?: string) {
     try {
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful assistant in a Slack workspace. Be concise and friendly in your responses.'
-          },
-          {
-            role: 'user',
-            content: initialMessage
-          }
-        ],
-      });
-
-      const reply = response.choices[0].message.content;
-      
-      // Store the conversation history
-      this.conversationHistory.set(userId, [
-        { role: 'user', content: initialMessage },
-        { role: 'assistant', content: reply }
-      ]);
-
       // Store thread timestamp if provided
       if (threadTs) {
         this.threadTimestamps.set(userId, threadTs);
       }
 
-      // Send the response back to Slack
-      await this.app.client.chat.postMessage({
-        channel: channelId,
-        text: reply || 'I apologize, but I could not generate a response.',
-        thread_ts: threadTs
-      });
-
-      return reply;
-    } catch (error) {
-      console.error('Error in startConversation:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Continue an existing conversation
-   */
-  public async continueConversation(userId: string, channelId: string, message: string) {
-    try {
-      const threadTs = this.threadTimestamps.get(userId);
-      
       // Fetch recent messages from Slack
       const slackHistory = await this.fetchSlackHistory(channelId, threadTs);
       
@@ -142,7 +99,7 @@ export class ConversationManager {
 
       return reply;
     } catch (error) {
-      console.error('Error in continueConversation:', error);
+      console.error('Error handling message:', error);
       throw error;
     }
   }

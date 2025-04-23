@@ -81,16 +81,44 @@ app.event('message', async ({ event, say }) => {
     const botInfo = await app.client.auth.test();
     const botUserId = botInfo.user_id || '';
     
-    // Check if message contains user mentions
-    const userMentions = messageEvent.text.match(/<@[^>]+>/g) || [];
-    
-    // Check if message contains bot mention
-    const hasBotMention = userMentions.some(mention => mention.includes(botUserId));
+    // Fetch thread history
+    const threadHistory = await app.client.conversations.replies({
+      channel: messageEvent.channel,
+      ts: messageEvent.thread_ts,
+      limit: 100
+    });
+
+    if (!threadHistory.messages) {
+      console.log('No thread history found');
+      return;
+    }
+
+    // Track the most recent mention timestamps
+    let lastUserMentionTs: string | null = null;
+    let lastBotMentionTs: string | null = null;
+
+    for (const msg of threadHistory.messages) {
+      if (msg.text && msg.ts) {
+        const mentions = msg.text.match(/<@[^>]+>/g) || [];
+        if (mentions.length > 0) {
+          // Check if this message contains a bot mention
+          const hasBotMention = mentions.some(mention => mention.includes(botUserId));
+          if (hasBotMention) {
+            lastBotMentionTs = msg.ts;
+          } else {
+            lastUserMentionTs = msg.ts;
+          }
+        }
+      }
+    }
     
     // Only respond if:
-    // 1. There are no user mentions, or
-    // 2. The bot is mentioned
-    if (userMentions.length === 0 || hasBotMention) {
+    // 1. There are no mentions at all, or
+    // 2. The bot was mentioned more recently than any user
+    const shouldRespond = !lastUserMentionTs || 
+      (lastBotMentionTs && parseFloat(lastBotMentionTs) > parseFloat(lastUserMentionTs));
+
+    if (shouldRespond) {
       try {
         await conversationManager.handleMessage(
           messageEvent.user,
@@ -106,7 +134,7 @@ app.event('message', async ({ event, say }) => {
         });
       }
     } else {
-      console.log('Skipping response: Message in thread with other user mentions but no bot mention');
+      console.log('Skipping response: Last user mention is more recent than last bot mention');
     }
   }
 });

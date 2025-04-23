@@ -6,9 +6,6 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-// Initialize Express
-const expressApp = express();
-
 // Initialize the Express receiver for Slack
 const receiver = new ExpressReceiver({
   signingSecret: process.env.SLACK_SIGNING_SECRET || '',
@@ -21,15 +18,15 @@ const app = new App({
 });
 
 // Add middleware to parse JSON bodies
-expressApp.use(express.json());
+receiver.app.use(express.json());
 
 // Health check endpoint
-expressApp.get('/health', (req, res) => {
+receiver.app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
 // Add URL verification endpoint
-expressApp.post('/', (req, res, next) => {
+receiver.app.post('/', (req, res, next) => {
   console.log('Received request:', req.body);
   
   if (req.body.type === 'url_verification') {
@@ -37,7 +34,7 @@ expressApp.post('/', (req, res, next) => {
     res.json({ challenge: req.body.challenge });
   } else {
     console.log('Forwarding to Slack receiver');
-    receiver.app(req, res, next);
+    next();
   }
 });
 
@@ -81,20 +78,15 @@ process.on('unhandledRejection', (error) => {
 // Start the app
 const port = process.env.PORT || 8080;
 
-// Start the Express server
-expressApp.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
-
-// Start the Slack app
+// Start the server
 (async () => {
   try {
-    await app.start();
-    console.log('⚡️ Bolt app is running!');
+    await app.start(port);
+    console.log(`⚡️ Bolt app is running on port ${port}!`);
   } catch (error) {
     console.error('Failed to start Slack app:', error);
     process.exit(1);
   }
 })();
 
-export default expressApp; 
+export default receiver.app; 

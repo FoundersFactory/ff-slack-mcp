@@ -21,22 +21,11 @@ const app = new App({
 // Add middleware to parse JSON bodies
 receiver.app.use(express.json());
 
-// Health check endpoint
-receiver.app.get('/health', (req, res) => {
-  res.status(200).send('OK');
-});
-
-// Add URL verification endpoint
-receiver.app.post('/', (req, res, next) => {
-  console.log('Received request:', req.body);
-  
-  if (req.body.type === 'url_verification') {
-    console.log('Handling URL verification');
-    res.json({ challenge: req.body.challenge });
-  } else {
-    console.log('Forwarding to Slack receiver');
-    next();
+receiver.app.use((req, res, next) => {
+  if (req.body?.type === 'url_verification') {
+    return res.json({ challenge: req.body.challenge });
   }
+  next();
 });
 
 // Handle app_mention events

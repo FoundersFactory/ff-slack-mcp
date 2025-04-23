@@ -84,7 +84,9 @@ export class ConversationManager {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant in a Slack workspace. Be ultra-concise but friendly in your responses. Answer using the fewest words possible without losing meaning. Avoid filler, repetition, and unnecessary detail.'
+            content: `You are a helpful assistant in a Slack workspace. Be ultra-concise but friendly in your responses. Answer using the fewest words possible without losing meaning. Avoid filler, repetition, and unnecessary detail.
+
+If a message is just a general comment about you or doesn't require a response (like "woah, it did it!"), simply respond with "NO_RESPONSE_NEEDED". Only respond with actual content when you can add value to the conversation.`
           },
           ...slackHistory,
           ...history
@@ -92,6 +94,12 @@ export class ConversationManager {
       });
 
       const reply = response.choices[0].message.content;
+      
+      // If the agent indicates no response is needed, return early
+      if (reply?.includes('NO_RESPONSE_NEEDED')) {
+        console.log('Agent determined no response was needed');
+        return null;
+      }
       
       // Update the conversation history
       history.push({ role: 'assistant', content: reply });

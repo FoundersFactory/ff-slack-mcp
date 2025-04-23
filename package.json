@@ -1,34 +1,25 @@
 {
   "name": "slack-ff-mcp",
   "version": "1.0.0",
-  "description": "Slack bot application for handling mentions and thread responses",
+  "description": "Slack bot with LiteLLM and OpenAI Agents integration",
   "main": "src/index.ts",
   "scripts": {
-    "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "ts-node src/index.ts",
     "build": "tsc",
-    "clean": "rimraf dist",
-    "prebuild": "npm run clean",
-    "lint": "eslint . --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "test": "jest"
+    "dev": "nodemon src/index.ts"
   },
   "dependencies": {
     "@slack/bolt": "^3.17.0",
-    "@slack/socket-mode": "^1.2.0",
-    "dotenv": "^16.4.1",
-    "express": "^4.18.2"
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "openai": "^4.0.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
-    "@types/node": "^20.11.16",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "eslint": "^8.56.0",
-    "prettier": "^3.2.5",
-    "rimraf": "^5.0.5",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.3.3"
+    "@types/node": "^20.10.0",
+    "nodemon": "^3.0.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.2"
   },
   "engines": {
     "node": ">=14.0.0"

@@ -1,4 +1,4 @@
-import { App } from '@slack/bolt';
+import { App, LogLevel } from '@slack/bolt';
 import { ExpressReceiver } from '@slack/bolt';
 import express from 'express';
 import dotenv from 'dotenv';
@@ -14,7 +14,8 @@ const receiver = new ExpressReceiver({
 // Initialize the Slack app with the Express receiver
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
-  receiver
+  receiver,
+  logLevel: LogLevel.DEBUG,
 });
 
 // Add middleware to parse JSON bodies

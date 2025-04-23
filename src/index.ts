@@ -76,19 +76,37 @@ app.event('message', async ({ event, say }) => {
   // Handle thread messages
   else if ('thread_ts' in event && event.thread_ts && 'user' in event && 'text' in event) {
     const messageEvent = event as { user: string; text: string; channel: string; thread_ts: string };
-    try {
-      await conversationManager.handleMessage(
-        messageEvent.user,
-        messageEvent.channel,
-        messageEvent.text,
-        messageEvent.thread_ts
-      );
-    } catch (error) {
-      console.error('Error handling thread message:', error);
-      await say({
-        text: `Sorry, I encountered an error. Please try again later.`,
-        thread_ts: messageEvent.thread_ts,
-      });
+    
+    // Get bot's user ID
+    const botInfo = await app.client.auth.test();
+    const botUserId = botInfo.user_id || '';
+    
+    // Check if message contains user mentions
+    const userMentions = messageEvent.text.match(/<@[^>]+>/g) || [];
+    
+    // Check if message contains bot mention
+    const hasBotMention = userMentions.some(mention => mention.includes(botUserId));
+    
+    // Only respond if:
+    // 1. There are no user mentions, or
+    // 2. The bot is mentioned
+    if (userMentions.length === 0 || hasBotMention) {
+      try {
+        await conversationManager.handleMessage(
+          messageEvent.user,
+          messageEvent.channel,
+          messageEvent.text,
+          messageEvent.thread_ts
+        );
+      } catch (error) {
+        console.error('Error handling thread message:', error);
+        await say({
+          text: `Sorry, I encountered an error. Please try again later.`,
+          thread_ts: messageEvent.thread_ts,
+        });
+      }
+    } else {
+      console.log('Skipping response: Message in thread with other user mentions but no bot mention');
     }
   }
 });

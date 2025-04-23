@@ -20,23 +20,30 @@ const app = new App({
   receiver
 });
 
+// Add middleware to parse JSON bodies
+expressApp.use(express.json());
+
 // Health check endpoint
 expressApp.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
 // Add URL verification endpoint
-expressApp.post('/', express.json(), (req, res, next) => {
+expressApp.post('/', (req, res, next) => {
+  console.log('Received request:', req.body);
+  
   if (req.body.type === 'url_verification') {
+    console.log('Handling URL verification');
     res.json({ challenge: req.body.challenge });
   } else {
-    // Forward other requests to the Slack receiver
+    console.log('Forwarding to Slack receiver');
     receiver.app(req, res, next);
   }
 });
 
 // Handle app_mention events
 app.event('app_mention', async ({ event, say }) => {
+  console.log('Received app_mention event:', event);
   try {
     await say({
       text: `Hello <@${event.user}>! I heard you mention me.`,
@@ -49,6 +56,7 @@ app.event('app_mention', async ({ event, say }) => {
 
 // Handle message events in threads
 app.event('message', async ({ event, say }) => {
+  console.log('Received message event:', event);
   if ('thread_ts' in event && event.thread_ts) {
     try {
       await say({

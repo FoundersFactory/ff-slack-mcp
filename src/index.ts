@@ -36,12 +36,18 @@ receiver.app.use((req, res, next) => {
 app.event('app_mention', async ({ event, say }) => {
   console.log('Received app_mention event:', event);
   try {
+    // Skip if this is a thread message (will be handled by message event)
+    if (event.thread_ts) {
+      console.log('Skipping app_mention: Message is in a thread, will be handled by message event');
+      return;
+    }
+
     if (event.text && event.user && event.channel) {
       await conversationManager.handleMessage(
         event.user,
         event.channel,
         event.text.replace(/<@[^>]+>/, '').trim(),
-        event.thread_ts || event.ts
+        event.ts
       );
     }
   } catch (error) {

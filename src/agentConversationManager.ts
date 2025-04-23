@@ -14,6 +14,13 @@ export class ConversationManager {
   }
 
   /**
+   * Get the conversation key based on user ID and thread timestamp
+   */
+  private getConversationKey(userId: string, threadTs?: string): string {
+    return threadTs ? `${userId}-${threadTs}` : userId;
+  }
+
+  /**
    * Fetch conversation history from Slack
    */
   private async fetchSlackHistory(channelId: string, threadTs?: string): Promise<any[]> {
@@ -60,15 +67,17 @@ export class ConversationManager {
         this.threadTimestamps.set(userId, threadTs);
       }
 
+      // Get the conversation key
+      const conversationKey = this.getConversationKey(userId, threadTs);
+      
       // Fetch recent messages from Slack
       const slackHistory = await this.fetchSlackHistory(channelId, threadTs);
       
-      // Combine Slack history with our stored history
-      const history = this.conversationHistory.get(userId) || [];
-      const combinedHistory = [...slackHistory, ...history];
-
+      // Get the stored history for this specific conversation
+      const history = this.conversationHistory.get(conversationKey) || [];
+      
       // Add the new message
-      combinedHistory.push({ role: 'user', content: message });
+      history.push({ role: 'user', content: message });
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4-turbo-preview',
@@ -77,18 +86,16 @@ export class ConversationManager {
             role: 'system',
             content: 'You are a helpful assistant in a Slack workspace. Be ultra-concise but friendly in your responses. Answer using the fewest words possible without losing meaning. Avoid filler, repetition, and unnecessary detail.'
           },
-          ...combinedHistory
+          ...slackHistory,
+          ...history
         ],
       });
 
       const reply = response.choices[0].message.content;
       
       // Update the conversation history
-      history.push(
-        { role: 'user', content: message },
-        { role: 'assistant', content: reply }
-      );
-      this.conversationHistory.set(userId, history);
+      history.push({ role: 'assistant', content: reply });
+      this.conversationHistory.set(conversationKey, history);
 
       // Send the response back to Slack
       await this.app.client.chat.postMessage({
@@ -107,8 +114,11 @@ export class ConversationManager {
   /**
    * Clear conversation history for a user
    */
-  public clearConversationHistory(userId: string) {
-    this.conversationHistory.delete(userId);
-    this.threadTimestamps.delete(userId);
+  public clearConversationHistory(userId: string, threadTs?: string) {
+    const conversationKey = this.getConversationKey(userId, threadTs);
+    this.conversationHistory.delete(conversationKey);
+    if (!threadTs) {
+      this.threadTimestamps.delete(userId);
+    }
   }
 } 

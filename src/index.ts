@@ -40,7 +40,8 @@ app.event('app_mention', async ({ event, say }) => {
       await conversationManager.startConversation(
         event.user,
         event.channel,
-        event.text.replace(/<@[^>]+>/, '').trim()
+        event.text.replace(/<@[^>]+>/, '').trim(),
+        event.thread_ts || event.ts
       );
     }
   } catch (error) {
@@ -68,7 +69,7 @@ app.event('message', async ({ event, say }) => {
     } catch (error) {
       console.error('Error handling direct message:', error);
       await say({
-        text: `Sorry, I encountered an error. Please try again later.`,
+        text: `Sorry, I encountered an error. Please try again later.`
       });
     }
   }

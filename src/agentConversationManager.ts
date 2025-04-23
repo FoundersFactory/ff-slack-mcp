@@ -4,6 +4,7 @@ import { App } from '@slack/bolt';
 export class ConversationManager {
   private openai: OpenAI;
   private conversationHistory: Map<string, any[]> = new Map();
+  private threadTimestamps: Map<string, string> = new Map();
 
   constructor(private app: App) {
     // Initialize the OpenAI client
@@ -15,7 +16,7 @@ export class ConversationManager {
   /**
    * Start a new conversation with a user
    */
-  public async startConversation(userId: string, channelId: string, initialMessage: string) {
+  public async startConversation(userId: string, channelId: string, initialMessage: string, threadTs?: string) {
     try {
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4-turbo-preview',
@@ -39,10 +40,16 @@ export class ConversationManager {
         { role: 'assistant', content: reply }
       ]);
 
+      // Store thread timestamp if provided
+      if (threadTs) {
+        this.threadTimestamps.set(userId, threadTs);
+      }
+
       // Send the response back to Slack
       await this.app.client.chat.postMessage({
         channel: channelId,
-        text: reply || 'I apologize, but I could not generate a response.'
+        text: reply || 'I apologize, but I could not generate a response.',
+        thread_ts: threadTs
       });
 
       return reply;
@@ -58,6 +65,7 @@ export class ConversationManager {
   public async continueConversation(userId: string, channelId: string, message: string) {
     try {
       const history = this.conversationHistory.get(userId) || [];
+      const threadTs = this.threadTimestamps.get(userId);
       
       // Add the new message to the history
       history.push({ role: 'user', content: message });
@@ -82,7 +90,8 @@ export class ConversationManager {
       // Send the response back to Slack
       await this.app.client.chat.postMessage({
         channel: channelId,
-        text: reply || 'I apologize, but I could not generate a response.'
+        text: reply || 'I apologize, but I could not generate a response.',
+        thread_ts: threadTs
       });
 
       return reply;
@@ -97,5 +106,6 @@ export class ConversationManager {
    */
   public clearConversationHistory(userId: string) {
     this.conversationHistory.delete(userId);
+    this.threadTimestamps.delete(userId);
   }
 } 

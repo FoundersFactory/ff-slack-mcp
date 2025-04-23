@@ -14,6 +14,43 @@ export class ConversationManager {
   }
 
   /**
+   * Fetch conversation history from Slack
+   */
+  private async fetchSlackHistory(channelId: string, threadTs?: string): Promise<any[]> {
+    try {
+      let result;
+      if (threadTs) {
+        // Fetch thread history
+        result = await this.app.client.conversations.replies({
+          channel: channelId,
+          ts: threadTs,
+          limit: 10 // Fetch last 10 messages
+        });
+      } else {
+        // Fetch DM history
+        result = await this.app.client.conversations.history({
+          channel: channelId,
+          limit: 10 // Fetch last 10 messages
+        });
+      }
+
+      if (!result.messages) return [];
+
+      // Get the bot's user ID
+      const botInfo = await this.app.client.auth.test();
+      const botUserId = botInfo.user_id;
+
+      return result.messages.map(msg => ({
+        role: msg.user === botUserId ? 'assistant' : 'user',
+        content: msg.text || ''
+      }));
+    } catch (error) {
+      console.error('Error fetching Slack history:', error);
+      return [];
+    }
+  }
+
+  /**
    * Start a new conversation with a user
    */
   public async startConversation(userId: string, channelId: string, initialMessage: string, threadTs?: string) {
@@ -64,11 +101,17 @@ export class ConversationManager {
    */
   public async continueConversation(userId: string, channelId: string, message: string) {
     try {
-      const history = this.conversationHistory.get(userId) || [];
       const threadTs = this.threadTimestamps.get(userId);
       
-      // Add the new message to the history
-      history.push({ role: 'user', content: message });
+      // Fetch recent messages from Slack
+      const slackHistory = await this.fetchSlackHistory(channelId, threadTs);
+      
+      // Combine Slack history with our stored history
+      const history = this.conversationHistory.get(userId) || [];
+      const combinedHistory = [...slackHistory, ...history];
+
+      // Add the new message
+      combinedHistory.push({ role: 'user', content: message });
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4-turbo-preview',
@@ -77,14 +120,17 @@ export class ConversationManager {
             role: 'system',
             content: 'You are a helpful assistant in a Slack workspace. Be concise and friendly in your responses.'
           },
-          ...history
+          ...combinedHistory
         ],
       });
 
       const reply = response.choices[0].message.content;
       
       // Update the conversation history
-      history.push({ role: 'assistant', content: reply });
+      history.push(
+        { role: 'user', content: message },
+        { role: 'assistant', content: reply }
+      );
       this.conversationHistory.set(userId, history);
 
       // Send the response back to Slack

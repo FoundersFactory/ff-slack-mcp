@@ -1,26 +1,32 @@
-import { App, SlackEventMiddlewareArgs } from '@slack/bolt';
-import dotenv from 'dotenv';
+import { App } from '@slack/bolt';
+import { ExpressReceiver } from '@slack/bolt';
 import express from 'express';
+import dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
 
-// Initialize the Slack app with HTTP mode
-const app = new App({
-  token: process.env.SLACK_BOT_TOKEN,
-  signingSecret: process.env.SLACK_SIGNING_SECRET,
+// Initialize Express
+const expressApp = express();
+
+// Initialize the Express receiver for Slack
+const receiver = new ExpressReceiver({
+  signingSecret: process.env.SLACK_SIGNING_SECRET || '',
 });
 
-// Create an Express app for health checks
-const expressApp = express();
+// Initialize the Slack app with the Express receiver
+const app = new App({
+  token: process.env.SLACK_BOT_TOKEN,
+  receiver
+});
 
 // Health check endpoint
 expressApp.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-// Handle app_mention events (when the bot is mentioned)
-app.event('app_mention', async ({ event, say }: SlackEventMiddlewareArgs<'app_mention'>) => {
+// Handle app_mention events
+app.event('app_mention', async ({ event, say }) => {
   try {
     await say({
       text: `Hello <@${event.user}>! I heard you mention me.`,
@@ -32,8 +38,7 @@ app.event('app_mention', async ({ event, say }: SlackEventMiddlewareArgs<'app_me
 });
 
 // Handle message events in threads
-app.event('message', async ({ event, say }: SlackEventMiddlewareArgs<'message'>) => {
-  // Only respond to messages in threads
+app.event('message', async ({ event, say }) => {
   if ('thread_ts' in event && event.thread_ts) {
     try {
       await say({
@@ -46,10 +51,7 @@ app.event('message', async ({ event, say }: SlackEventMiddlewareArgs<'message'>)
   }
 });
 
-// Start the app
-const port = process.env.PORT || 8080;
-
-// Error handling for uncaught exceptions
+// Error handling
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
 });
@@ -58,18 +60,23 @@ process.on('unhandledRejection', (error) => {
   console.error('Unhandled Rejection:', error);
 });
 
-// Start the Express server for health checks
+// Start the app
+const port = process.env.PORT || 8080;
+
+// Start the Express server
 expressApp.listen(port, () => {
-  console.log(`Health check server running on port ${port}`);
+  console.log(`Server is running on port ${port}`);
 });
 
 // Start the Slack app
 (async () => {
   try {
-    await app.start(port);
-    console.log(`⚡️ Bolt app is running on port ${port}!`);
+    await app.start();
+    console.log('⚡️ Bolt app is running!');
   } catch (error) {
     console.error('Failed to start Slack app:', error);
     process.exit(1);
   }
-})(); 
+})();
+
+export default expressApp; 

@@ -24,13 +24,13 @@ export class ConversationManager {
         result = await this.app.client.conversations.replies({
           channel: channelId,
           ts: threadTs,
-          limit: 10 // Fetch last 10 messages
+          limit: 100
         });
       } else {
         // Fetch DM history
         result = await this.app.client.conversations.history({
           channel: channelId,
-          limit: 10 // Fetch last 10 messages
+          limit: 10
         });
       }
 
@@ -118,7 +118,7 @@ export class ConversationManager {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant in a Slack workspace. Be concise and friendly in your responses.'
+            content: 'You are a helpful assistant in a Slack workspace. Be ultra-concise but friendly in your responses. Answer using the fewest words possible without losing meaning. Avoid filler, repetition, and unnecessary detail.'
           },
           ...combinedHistory
         ],

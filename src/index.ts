@@ -25,6 +25,16 @@ expressApp.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
+// Add URL verification endpoint
+expressApp.post('/', express.json(), (req, res, next) => {
+  if (req.body.type === 'url_verification') {
+    res.json({ challenge: req.body.challenge });
+  } else {
+    // Forward other requests to the Slack receiver
+    receiver.app(req, res, next);
+  }
+});
+
 // Handle app_mention events
 app.event('app_mention', async ({ event, say }) => {
   try {

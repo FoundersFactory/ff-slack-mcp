@@ -1,5 +1,6 @@
 import { App, SlackEventMiddlewareArgs } from '@slack/bolt';
 import dotenv from 'dotenv';
+import express from 'express';
 
 // Load environment variables
 dotenv.config();
@@ -8,6 +9,14 @@ dotenv.config();
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
+});
+
+// Create an Express app for health checks
+const expressApp = express();
+
+// Health check endpoint
+expressApp.get('/health', (req, res) => {
+  res.status(200).send('OK');
 });
 
 // Handle app_mention events (when the bot is mentioned)
@@ -39,7 +48,28 @@ app.event('message', async ({ event, say }: SlackEventMiddlewareArgs<'message'>)
 
 // Start the app
 const port = process.env.PORT || 8080;
+
+// Error handling for uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (error) => {
+  console.error('Unhandled Rejection:', error);
+});
+
+// Start the Express server for health checks
+expressApp.listen(port, () => {
+  console.log(`Health check server running on port ${port}`);
+});
+
+// Start the Slack app
 (async () => {
-  await app.start(port);
-  console.log(`⚡️ Bolt app is running on port ${port}!`);
+  try {
+    await app.start(port);
+    console.log(`⚡️ Bolt app is running on port ${port}!`);
+  } catch (error) {
+    console.error('Failed to start Slack app:', error);
+    process.exit(1);
+  }
 })(); 

@@ -1,7 +1,7 @@
 {
   "name": "slack-ff-mcp",
   "version": "1.0.0",
-  "description": "Slack bot with LiteLLM and OpenAI Agents integration",
+  "description": "Slack bot with OpenAI Agents integration",
   "main": "src/index.ts",
   "scripts": {
     "start": "ts-node src/index.ts",

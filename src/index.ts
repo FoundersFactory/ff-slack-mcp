@@ -2,7 +2,7 @@ import { App, LogLevel } from '@slack/bolt';
 import { ExpressReceiver } from '@slack/bolt';
 import express from 'express';
 import dotenv from 'dotenv';
-import { ConversationManager } from './agents/conversation';
+import { ConversationManager } from './agentConversationManager';
 
 // Load environment variables
 dotenv.config();

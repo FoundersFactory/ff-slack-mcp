@@ -2,29 +2,27 @@ import { App, LogLevel } from '@slack/bolt';
 import { ExpressReceiver } from '@slack/bolt';
 import express from 'express';
 import dotenv from 'dotenv';
-import { ConversationManager } from './agentConversationManager';
+import { ConversationManager } from './conversationManager';
 
-// Load environment variables
+//
+// Initilises express & Slack app (bolt)
+//
+
 dotenv.config();
 
-// Initialize the Express receiver for Slack
 const receiver = new ExpressReceiver({
   signingSecret: process.env.SLACK_SIGNING_SECRET || '',
 });
 
-// Initialize the Slack app with the Express receiver
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN || '',
   receiver,
   logLevel: LogLevel.DEBUG,
 });
 
-// Initialize the conversation manager
 const conversationManager = new ConversationManager(app);
 
-// Add middleware to parse JSON bodies
 receiver.app.use(express.json());
-
 receiver.app.use((req, res, next) => {
   if (req.body?.type === 'url_verification') {
     return res.json({ challenge: req.body.challenge });
@@ -32,15 +30,15 @@ receiver.app.use((req, res, next) => {
   next();
 });
 
-// Handle app_mention events
+//
+// Handle events from Slack
+//
+
 app.event('app_mention', async ({ event, say }) => {
   console.log('Received app_mention event:', event);
   try {
-    // Skip if this is a thread message (will be handled by message event)
-    if (event.thread_ts) {
-      console.log('Skipping app_mention: Message is in a thread, will be handled by message event');
-      return;
-    }
+    // Skip if this is a thread message or a DM
+    if (event.thread_ts || event.channel.startsWith('D')) { return; }
 
     if (event.text && event.user && event.channel) {
       await conversationManager.handleMessage(
@@ -83,69 +81,27 @@ app.event('message', async ({ event, say }) => {
   else if ('thread_ts' in event && event.thread_ts && 'user' in event && 'text' in event) {
     const messageEvent = event as { user: string; text: string; channel: string; thread_ts: string };
     
-    // Get bot's user ID
-    const botInfo = await app.client.auth.test();
-    const botUserId = botInfo.user_id || '';
-    
-    // Fetch thread history
-    const threadHistory = await app.client.conversations.replies({
-      channel: messageEvent.channel,
-      ts: messageEvent.thread_ts,
-      limit: 100
-    });
-
-    if (!threadHistory.messages) {
-      console.log('No thread history found');
-      return;
-    }
-
-    // Track the most recent mention timestamps
-    let lastUserMentionTs: string | null = null;
-    let lastBotMentionTs: string | null = null;
-
-    for (const msg of threadHistory.messages) {
-      if (msg.text && msg.ts) {
-        const mentions = msg.text.match(/<@[^>]+>/g) || [];
-        if (mentions.length > 0) {
-          // Check if this message contains a bot mention
-          const hasBotMention = mentions.some(mention => mention.includes(botUserId));
-          if (hasBotMention) {
-            lastBotMentionTs = msg.ts;
-          } else {
-            lastUserMentionTs = msg.ts;
-          }
-        }
-      }
-    }
-    
-    // Only respond if:
-    // 1. There are no mentions at all, or
-    // 2. The bot was mentioned more recently than any user
-    const shouldRespond = !lastUserMentionTs || 
-      (lastBotMentionTs && parseFloat(lastBotMentionTs) > parseFloat(lastUserMentionTs));
-
-    if (shouldRespond) {
-      try {
-        await conversationManager.handleMessage(
-          messageEvent.user,
-          messageEvent.channel,
-          messageEvent.text,
-          messageEvent.thread_ts
-        );
-      } catch (error) {
-        console.error('Error handling thread message:', error);
-        await say({
-          text: `Sorry, I encountered an error. Please try again later.`,
-          thread_ts: messageEvent.thread_ts,
-        });
-      }
-    } else {
-      console.log('Skipping response: Last user mention is more recent than last bot mention');
+    try {
+      await conversationManager.handleMessage(
+        messageEvent.user,
+        messageEvent.channel,
+        messageEvent.text,
+        messageEvent.thread_ts
+      );
+    } catch (error) {
+      console.error('Error handling thread message:', error);
+      await say({
+        text: `Sorry, I encountered an error. Please try again later.`,
+        thread_ts: messageEvent.thread_ts,
+      });
     }
   }
 });
 
-// Error handling
+//
+// Top level error handling
+//
+
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
 });
@@ -154,10 +110,12 @@ process.on('unhandledRejection', (error) => {
   console.error('Unhandled Rejection:', error);
 });
 
-// Start the app
+//
+// Start the app & server
+//
+
 const port = process.env.PORT || 8080;
 
-// Start the server
 (async () => {
   try {
     await app.start(port);

@@ -5,7 +5,7 @@ dotenv.config();
 //Langchain packages
 import {MongoDBAtlasVectorSearch} from "@langchain/mongodb";
 import {MongoClient} from "mongodb";
-import {OpenAI, OpenAIEmbeddings} from "@langchain/openai";
+import {OpenAIEmbeddings, ChatOpenAI} from "@langchain/openai";
 import {RetrievalQAChain} from "langchain/chains";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -41,7 +41,7 @@ export async function getRAGContext(message: string): Promise<string> {
 
         //RAG-based search
         const vectorStoreRetriever = vectorStore.asRetriever();
-        const model = new OpenAI({apiKey: OPENAI_API_KEY, model: "gpt-4"});
+        const model = new ChatOpenAI({apiKey: OPENAI_API_KEY, model: "gpt-4"});
         const chain = RetrievalQAChain.fromLLM(model, vectorStoreRetriever);
         
         const res = await chain.invoke({

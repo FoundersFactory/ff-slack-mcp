@@ -61,24 +61,7 @@ app.event('app_mention', async ({ event, say }) => {
 app.event('message', async ({ event, say }) => {
   console.log('Received message event:', event);
   
-  // Check if it's a direct message (channel starts with 'D')
-  if (event.channel.startsWith('D') && 'user' in event && 'text' in event) {
-    const messageEvent = event as { user: string; text: string; channel: string };
-    try {
-      await conversationManager.handleMessage(
-        messageEvent.user,
-        messageEvent.channel,
-        messageEvent.text
-      );
-    } catch (error) {
-      console.error('Error handling direct message:', error);
-      await say({
-        text: `Sorry, I encountered an error. Please try again later.`
-      });
-    }
-  }
-  // Handle thread messages
-  else if ('thread_ts' in event && event.thread_ts && 'user' in event && 'text' in event) {
+  if ('thread_ts' in event && event.thread_ts && 'user' in event && 'text' in event) {
     const messageEvent = event as { user: string; text: string; channel: string; thread_ts: string };
     
     try {

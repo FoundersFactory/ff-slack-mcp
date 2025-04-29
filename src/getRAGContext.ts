@@ -25,7 +25,7 @@ async function embed(text: string): Promise<number[]> {
     const apiUrl = 'https://api.openai.com/v1/embeddings';
     const requestBody = {
         input: text,
-        model: 'text-embedding-3-small',
+        model: 'text-embedding-3-large',
     };
 
     try {

@@ -2,6 +2,7 @@
   "name": "slack-ff-mcp",
   "version": "1.0.0",
   "description": "Slack bot with OpenAI Agents integration",
+  "type": "module",
   "main": "src/index.ts",
   "scripts": {
     "start": "ts-node src/index.ts",

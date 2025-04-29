@@ -3,12 +3,10 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 //Langchain packages
-import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
-import { MongoClient } from "mongodb";
-import { OpenAI, OpenAIEmbeddings } from "@langchain/openai";
-import { createRetrievalChain } from "langchain/chains/retrieval";
-import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
-import { ChatPromptTemplate } from "@langchain/core/prompts";
+import {MongoDBAtlasVectorSearch} from "@langchain/mongodb";
+import {MongoClient} from "mongodb";
+import {OpenAI, OpenAIEmbeddings} from "@langchain/openai";
+import {RetrievalQAChain} from "langchain/chains";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const MONGO_CONNECTION_STRING = process.env.MONGO_CONNECTION_STRING;
@@ -44,28 +42,13 @@ export async function getRAGContext(message: string): Promise<string> {
         //RAG-based search
         const vectorStoreRetriever = vectorStore.asRetriever();
         const model = new OpenAI({apiKey: OPENAI_API_KEY, model: "gpt-4"});
-        
-        const prompt = ChatPromptTemplate.fromTemplate(`Answer the following question based on the provided context:
-
-Context: {context}
-
-Question: {input}`);
-
-        const documentChain = await createStuffDocumentsChain({
-          llm: model,
-          prompt,
-        });
-
-        const chain = await createRetrievalChain({
-          retriever: vectorStoreRetriever,
-          combineDocsChain: documentChain,
-        });
+        const chain = RetrievalQAChain.fromLLM(model, vectorStoreRetriever);
         
         const res = await chain.invoke({
-          input: message,
+            query: message,
         });
 
-        return res.answer;
+        return res.text;
     } finally {
         await client.close();
     }

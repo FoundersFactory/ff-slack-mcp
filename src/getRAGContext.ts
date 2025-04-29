@@ -3,9 +3,9 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 //Langchain packages
-import {MongoDBAtlasVectorSearch} from "@langchain/mongodb";
-import {MongoClient} from "mongodb";
-import {OpenAI, OpenAIEmbeddings} from "@langchain/openai";
+import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
+import { MongoClient } from "mongodb";
+import { OpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { createRetrievalChain } from "langchain/chains/retrieval";
 import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
 import { ChatPromptTemplate } from "@langchain/core/prompts";

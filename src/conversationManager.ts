@@ -125,7 +125,7 @@ export class ConversationManager {
         messages: [
           {
             role: 'system',
-            content: await this.promptBuilder.buildSystemPrompt(threadTs, collectedUserIds)
+            content: await this.promptBuilder.buildSystemPrompt(threadTs, collectedUserIds, message)
           },
           ...slackHistory
         ],

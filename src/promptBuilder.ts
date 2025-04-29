@@ -1,4 +1,14 @@
+//Load environment variables
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 import { App } from '@slack/bolt';
+import { getRAGContext } from './getRAGContext';
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const MONGO_CONNECTION_STRING = process.env.MONGO_CONNECTION_STRING;
+const MONGO_DB_NAME = process.env.MONGO_DB_NAME;
+const MONGO_COLLECTION_NAME = process.env.MONGO_COLLECTION_NAME;
 
 const orgChart = `**Henry Lane Fox — Chief Executive Officer**  
 ├── **Damian Routley — Chief Operating Officer**  
@@ -55,7 +65,7 @@ export class PromptBuilder {
     this.app = app;
   }
 
-  public async buildSystemPrompt(threadTs?: string, userNames: string[] = []): Promise<string> {
+  public async buildSystemPrompt(threadTs?: string, userNames: string[] = [], message?: string): Promise<string> {
     const basePrompt = `You are a helpful assistant in a Slack workspace. Be concise but friendly in your responses. Answer using the fewest words possible without losing meaning. Avoid filler, repetition, and unnecessary detail.`;
     
     let personalizedPrompt = basePrompt;
@@ -71,10 +81,18 @@ export class PromptBuilder {
     }
 
     if (threadTs) {
-      return `${personalizedPrompt}\n\nIf a message is just a general comment about you, isn't a question, or doesn't require a response (like "woah, it did it!"), simply respond with "NO_RESPONSE_NEEDED". Only respond with actual content when you can add value to the conversation.`;
+      personalizedPrompt = `${personalizedPrompt}\n\nIf a message is just a general comment about you, isn't a question, or doesn't require a response (like "woah, it did it!"), simply respond with "NO_RESPONSE_NEEDED". Only respond with actual content when you can add value to the conversation.`;
     }
 
     const orgChartPrompt = `Here is the org chart of the company in which you are operating: ${orgChart}`;
-    return `${personalizedPrompt}\n\n${orgChartPrompt}`;
+    
+    let finalPrompt = `${personalizedPrompt}\n\n${orgChartPrompt}`;
+    
+    if (message) {
+      const ragContext = await getRAGContext(message);
+      finalPrompt += `\n\nHere is some relevant context for your response: ${ragContext}`;
+    }
+
+    return finalPrompt;
   }
 }

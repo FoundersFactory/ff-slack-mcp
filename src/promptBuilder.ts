@@ -40,7 +40,7 @@ const orgChart = `**Henry Lane Fox — Chief Executive Officer - henry@ff.co**
 │   │   └── Giulio Brugnaro — Venture Designer - giulio.brugnaro@foundersfactory.co
 │   ├── Daniel Roden — Venture Builder - daniel.roden@foundersfactory.co
 │   ├── Max Glintschert — Venture Builder - max.glintschert@foundersfactory.co
-│   └── Michele Cippolone — Venture Builder - michele.cippolone@foundersfactory.co
+│   └── Michele Cipollone — Venture Builder - michele.cipollone@foundersfactory.co
 
 ├── **George Northcott — President, Expansion  - george@foundersfactory.co**
 │   └── Nick le Fevre — Director of Partnerships - nick@foundersfactory.co

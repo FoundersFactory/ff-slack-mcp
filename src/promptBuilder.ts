@@ -32,7 +32,7 @@ const orgChart = `**Henry Lane Fox — Chief Executive Officer - henry@ff.co**
 │   ├── Ed Harding — Head of Studio Operations - ed.harding@foundersfactory.co
 │   ├── Alberto Mucci — Studio Lead - alberto.mucci@foundersfactory.co
 │   ├── Conny Reh — Studio Lead - conny.reh@foundersfactory.co
-│   ├── **Jacob George — Director of Product - jacob.george@foundersfactory.co**  
+│   ├── **Jacob George (JG) — Director of Product - jacob.george@foundersfactory.co**  
 │   │   └── Serena Rizzo — Product Coach - serena.rizzo@foundersfactory.co
 │   ├── Jack Howell — Tech & Data Lead - jack.howell@foundersfactory.co
 │   ├── **Sahil Sachdev — Director of New Ventures - sahil.sachdev@foundersfactory.co**  

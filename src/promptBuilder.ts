@@ -3,7 +3,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 import { App } from '@slack/bolt';
-import { getRAGContext } from './getRAGContext';
+// import { getRAGContext } from './getRAGContext';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const MONGO_CONNECTION_STRING = process.env.MONGO_CONNECTION_STRING;
@@ -88,10 +88,10 @@ export class PromptBuilder {
     
     let finalPrompt = `${personalizedPrompt}\n\n${orgChartPrompt}`;
     
-    if (message) {
-      const ragContext = await getRAGContext(message);
-      finalPrompt += `\n\nHere is some relevant context for your response: ${ragContext}`;
-    }
+    // if (message) {
+    //   const ragContext = await getRAGContext(message);
+    //   finalPrompt += `\n\nHere is some relevant context for your response: ${ragContext}`;
+    // }
 
     return finalPrompt;
   }

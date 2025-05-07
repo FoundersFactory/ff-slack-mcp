@@ -1,4 +1,4 @@
-import { App } from '@slack/bolt';
+import { App, SlackActionMiddlewareArgs, BlockAction, AllMiddlewareArgs } from '@slack/bolt';
 
 interface Command {
   name: string;
@@ -18,15 +18,6 @@ interface Ticklist {
   createdBy: string;
   channelId: string;
   threadTs?: string;
-}
-
-interface SlackAction {
-  value: string;
-}
-
-interface SlackBody {
-  channel: { id: string };
-  message?: { ts: string; thread_ts?: string };
 }
 
 export class CommandInterpreter {
@@ -173,17 +164,18 @@ export class CommandInterpreter {
     });
 
     // Add action handler for ticklist buttons
-    this.app.action(/^submit_(.+)$/, async ({ ack, body, action }: { ack: () => Promise<void>; body: SlackBody; action: SlackAction }) => {
+    this.app.action('submit_ticklist', async ({ ack, body, action }) => {
       await ack();
       
+      const actionBody = body as BlockAction;
       const ticklistId = action.value.replace('submit_', '');
       const ticklist = this.activeTicklists.get(ticklistId);
       
-      if (!ticklist) {
+      if (!ticklist || !actionBody.channel?.id) {
         await this.app.client.chat.postMessage({
-          channel: body.channel.id,
+          channel: actionBody.channel?.id || '',
           text: 'This ticklist is no longer active.',
-          thread_ts: body.message?.thread_ts
+          thread_ts: actionBody.message?.thread_ts
         });
         return;
       }
@@ -192,20 +184,21 @@ export class CommandInterpreter {
       const message = `*Submitted Ticklist*\nChecked members:\n${checkedMembers.map(m => `• ${m.name}`).join('\n')}`;
       
       await this.app.client.chat.postMessage({
-        channel: body.channel.id,
+        channel: actionBody.channel.id,
         text: message,
-        thread_ts: body.message?.thread_ts
+        thread_ts: actionBody.message?.thread_ts
       });
 
       this.activeTicklists.delete(ticklistId);
     });
 
     // Add action handler for checkboxes
-    this.app.action(/^check_(.+)_(.+)$/, async ({ ack, body, action }: { ack: () => Promise<void>; body: SlackBody; action: SlackAction }) => {
+    this.app.action('check_member', async ({ ack, body, action }) => {
       await ack();
       
+      const actionBody = body as BlockAction;
       const [, ticklistId, memberId] = action.value.match(/^check_(.+)_(.+)$/) || [];
-      if (!ticklistId || !memberId) return;
+      if (!ticklistId || !memberId || !actionBody.channel?.id) return;
 
       const ticklist = this.activeTicklists.get(ticklistId);
       if (!ticklist) return;
@@ -216,8 +209,8 @@ export class CommandInterpreter {
         const message = this.formatTicklist(ticklist);
         
         await this.app.client.chat.update({
-          channel: body.channel.id,
-          ts: body.message?.ts || '',
+          channel: actionBody.channel.id,
+          ts: actionBody.message?.ts || '',
           text: message,
           blocks: [
             {

@@ -3,6 +3,7 @@ import { ExpressReceiver } from '@slack/bolt';
 import express from 'express';
 import dotenv from 'dotenv';
 import { ConversationManager } from './conversationManager';
+import { CommandInterpreter } from './commandInterpreter';
 
 //
 // Initilises express & Slack app (bolt)
@@ -21,6 +22,7 @@ const app = new App({
 });
 
 const conversationManager = new ConversationManager(app);
+const commandInterpreter = new CommandInterpreter(app);
 
 receiver.app.use(express.json());
 receiver.app.use((req, res, next) => {
@@ -41,12 +43,25 @@ app.event('app_mention', async ({ event, say }) => {
     if (event.thread_ts || event.channel.startsWith('D')) { return; }
 
     if (event.text && event.user && event.channel) {
-      await conversationManager.handleMessage(
+      const message = event.text.replace(/<@[^>]+>/, '').trim();
+      
+      // Try to interpret as a command first
+      const wasCommand = await commandInterpreter.interpretMessage(
+        message,
         event.user,
         event.channel,
-        event.text.replace(/<@[^>]+>/, '').trim(),
         event.ts
       );
+
+      // If it wasn't a command, handle as a regular message
+      if (!wasCommand) {
+        await conversationManager.handleMessage(
+          event.user,
+          event.channel,
+          message,
+          event.ts
+        );
+      }
     }
   } catch (error) {
     console.error('Error handling app_mention:', error);
@@ -65,12 +80,23 @@ app.event('message', async ({ event, say }) => {
     const messageEvent = event as { user: string; text: string; channel: string; thread_ts: string };
     
     try {
-      await conversationManager.handleMessage(
+      // Try to interpret as a command first
+      const wasCommand = await commandInterpreter.interpretMessage(
+        messageEvent.text,
         messageEvent.user,
         messageEvent.channel,
-        messageEvent.text,
         messageEvent.thread_ts
       );
+
+      // If it wasn't a command, handle as a regular message
+      if (!wasCommand) {
+        await conversationManager.handleMessage(
+          messageEvent.user,
+          messageEvent.channel,
+          messageEvent.text,
+          messageEvent.thread_ts
+        );
+      }
     } catch (error) {
       console.error('Error handling thread message:', error);
       await say({

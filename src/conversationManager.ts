@@ -1,16 +1,29 @@
 import OpenAI from 'openai';
 import { App } from '@slack/bolt';
 import { PromptBuilder } from './promptBuilder';
+import { getToolList, ToolInfo } from './toolList';
 
 export class ConversationManager {
   private openai: OpenAI;
   private promptBuilder: PromptBuilder;
+  private toolList: ToolInfo[] = [];
 
   constructor(private app: App) {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
     this.promptBuilder = new PromptBuilder(app);
+    this.initializeToolList();
+  }
+
+  private async initializeToolList() {
+    try {
+      this.toolList = await getToolList();
+      console.log('Tool list initialized with', this.toolList.length, 'tools');
+    } catch (error) {
+      console.error('Failed to initialize tool list:', error);
+      this.toolList = [];
+    }
   }
 
   //
@@ -125,7 +138,7 @@ export class ConversationManager {
         messages: [
           {
             role: 'system',
-            content: await this.promptBuilder.buildSystemPrompt(threadTs, collectedUserIds, message)
+            content: await this.promptBuilder.buildSystemPrompt(threadTs, collectedUserIds, message, this.toolList)
           },
           ...slackHistory
         ],
